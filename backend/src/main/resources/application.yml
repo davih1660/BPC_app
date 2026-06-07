@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: escola-remo
+  datasource:
+    url: jdbc:postgresql://localhost:5432/escola_remo
+    username: escola
+    password: escola123
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc.time_zone: America/Sao_Paulo
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 55MB
+  jackson:
+    time-zone: America/Sao_Paulo
+
+server:
+  port: 8080
+
+app:
+  seed:
+    enabled: true
+  uploads:
+    dir: uploads

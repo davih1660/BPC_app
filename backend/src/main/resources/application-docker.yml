@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/escola_remo}
+    username: ${SPRING_DATASOURCE_USERNAME:escola}
+    password: ${SPRING_DATASOURCE_PASSWORD:escola123}
+
+app:
+  seed:
+    enabled: ${APP_SEED_ENABLED:true}
+  uploads:
+    dir: ${APP_UPLOADS_DIR:/app/uploads}
