@@ -3,14 +3,14 @@ package com.bpc.escola.dto;
 import java.util.List;
 
 public record DashboardDTO(
-        OperacaoAulaDTO destaque,
+        OperacaoHorarioSlotDTO destaque,
         ProximasAulasOperacionaisDTO proximasAulas,
         List<EmbarcacaoDTO> embarcacoesDisponiveis,
         List<OcorrenciaDTO> ocorrenciasAbertas,
-        List<AulaLotadaDTO> aulasLotadas,
+        List<HorarioLotadoDTO> horariosLotados,
         long alunosNoDia
 ) {
-    public record AulaLotadaDTO(Long aulaId, String titulo, LocalDateInfo data, int inscritos, int capacidade) {
+    public record HorarioLotadoDTO(Long horarioId, String titulo, LocalDateInfo data, int inscritos, int capacidade) {
     }
 
     public record LocalDateInfo(String data) {

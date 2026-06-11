@@ -8,6 +8,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -20,13 +23,14 @@ public class ReservaEmbarcacaoController {
     @GetMapping
     public List<ReservaEmbarcacaoDTO> listar(
             @RequestParam(required = false) Long alunoId,
-            @RequestParam(required = false) StatusReserva status) {
-        return reservaEmbarcacaoService.listar(alunoId, status);
+            @RequestParam(required = false) StatusReserva status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+        return reservaEmbarcacaoService.listar(alunoId, status, data);
     }
 
     @PostMapping
     public ReservaEmbarcacaoDTO criar(@Valid @RequestBody CreateReservaEmbarcacaoRequest request) {
-        return reservaEmbarcacaoService.criar(request);
+        return reservaEmbarcacaoService.criarPorStaff(request);
     }
 
     @DeleteMapping("/{id}")

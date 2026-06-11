@@ -1,5 +1,6 @@
 package com.bpc.escola.domain;
 
+import com.bpc.escola.domain.enums.OrigemReserva;
 import com.bpc.escola.domain.enums.StatusReserva;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,6 +35,10 @@ public class ReservaAula {
 
     @Column(nullable = false)
     private LocalDate dataReserva;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private OrigemReserva origem = OrigemReserva.MANUAL;
 
     @Builder.Default
     private Boolean presente = false;

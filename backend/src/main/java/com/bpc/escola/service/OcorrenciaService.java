@@ -1,7 +1,9 @@
 package com.bpc.escola.service;
 
 import com.bpc.escola.domain.Ocorrencia;
+import com.bpc.escola.domain.TipoOcorrencia;
 import com.bpc.escola.domain.enums.StatusOcorrencia;
+import com.bpc.escola.dto.CriarOcorrenciaRequest;
 import com.bpc.escola.dto.OcorrenciaDTO;
 import com.bpc.escola.dto.OcorrenciaImagemDTO;
 import com.bpc.escola.exception.BusinessException;
@@ -27,6 +29,7 @@ public class OcorrenciaService {
     private final OcorrenciaImagemRepository imagemRepository;
     private final EmbarcacaoService embarcacaoService;
     private final UsuarioService usuarioService;
+    private final TipoOcorrenciaService tipoOcorrenciaService;
 
     public List<OcorrenciaDTO> listar(StatusOcorrencia status) {
         List<Ocorrencia> lista = status != null
@@ -48,14 +51,16 @@ public class OcorrenciaService {
     }
 
     @Transactional
-    public OcorrenciaDTO criar(OcorrenciaDTO dto, Long usuarioId) {
+    public OcorrenciaDTO criar(CriarOcorrenciaRequest dto, Long usuarioId) {
         validarCriacao(dto);
+        TipoOcorrencia tipo = tipoOcorrenciaService.getAtivo(dto.tipoOcorrenciaId());
         Ocorrencia o = Ocorrencia.builder()
                 .embarcacao(embarcacaoService.get(dto.embarcacaoId()))
                 .usuario(usuarioService.get(usuarioId))
-                .titulo(dto.titulo())
+                .tipoOcorrencia(tipo)
+                .titulo(tipo.getNome())
                 .descricao(dto.descricao())
-                .gravidade(dto.gravidade())
+                .gravidade(tipo.getGravidade())
                 .status(StatusOcorrencia.ABERTA)
                 .dataAbertura(RelogioSaoPaulo.dataHora())
                 .build();
@@ -70,15 +75,12 @@ public class OcorrenciaService {
         return OcorrenciaDTO.from(o, imagens);
     }
 
-    private void validarCriacao(OcorrenciaDTO dto) {
-        if (dto.titulo() == null || dto.titulo().isBlank()) {
-            throw new BusinessException("Informe o título da ocorrência.", "TITULO_OBRIGATORIO");
+    private void validarCriacao(CriarOcorrenciaRequest dto) {
+        if (dto.tipoOcorrenciaId() == null) {
+            throw new BusinessException("Selecione o tipo da ocorrência.", "TIPO_OCORRENCIA_OBRIGATORIO");
         }
         if (dto.embarcacaoId() == null) {
             throw new BusinessException("Selecione a embarcação.", "EMBARCACAO_OBRIGATORIA");
-        }
-        if (dto.gravidade() == null) {
-            throw new BusinessException("Selecione a gravidade.", "GRAVIDADE_OBRIGATORIA");
         }
         if (dto.descricao() != null && dto.descricao().length() > DESCRICAO_MAX) {
             throw new BusinessException(

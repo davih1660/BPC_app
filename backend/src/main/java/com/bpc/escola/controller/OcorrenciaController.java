@@ -1,6 +1,7 @@
 package com.bpc.escola.controller;
 
 import com.bpc.escola.domain.enums.StatusOcorrencia;
+import com.bpc.escola.dto.CriarOcorrenciaRequest;
 import com.bpc.escola.dto.OcorrenciaDTO;
 import com.bpc.escola.dto.OcorrenciaImagemDTO;
 import com.bpc.escola.service.OcorrenciaImagemService;
@@ -31,7 +32,7 @@ public class OcorrenciaController {
 
     @PostMapping
     public OcorrenciaDTO criar(
-            @RequestBody OcorrenciaDTO dto,
+            @RequestBody CriarOcorrenciaRequest dto,
             @RequestHeader(value = "X-Usuario-Id", required = false) Long usuarioId) {
         Long uid = usuarioId != null ? usuarioId : dto.usuarioId();
         return ocorrenciaService.criar(dto, uid);

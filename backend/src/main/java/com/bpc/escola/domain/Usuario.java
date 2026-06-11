@@ -28,4 +28,8 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoUsuario tipoUsuario;
+
+    /** Senha em texto simples — apenas protótipo. */
+    private String senha;
 }
+

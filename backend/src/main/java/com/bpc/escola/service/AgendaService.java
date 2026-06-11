@@ -1,12 +1,12 @@
 package com.bpc.escola.service;
 
-import com.bpc.escola.domain.Aula;
-import com.bpc.escola.domain.ReservaAula;
+import com.bpc.escola.domain.HorarioColetivo;
+import com.bpc.escola.domain.ReservaColetiva;
 import com.bpc.escola.domain.ReservaEmbarcacao;
 import com.bpc.escola.domain.enums.StatusReserva;
 import com.bpc.escola.dto.AgendaDTO;
-import com.bpc.escola.repository.AulaRepository;
-import com.bpc.escola.repository.ReservaAulaRepository;
+import com.bpc.escola.repository.HorarioColetivoRepository;
+import com.bpc.escola.repository.ReservaColetivaRepository;
 import com.bpc.escola.repository.ReservaEmbarcacaoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,34 +22,31 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class AgendaService {
 
-    private final AulaRepository aulaRepository;
-    private final ReservaAulaRepository reservaAulaRepository;
+    private final HorarioColetivoRepository horarioRepository;
+    private final ReservaColetivaRepository reservaColetivaRepository;
     private final ReservaEmbarcacaoRepository reservaEmbarcacaoRepository;
-    private final DisponibilidadeEmbarcacaoService disponibilidadeService;
 
     public AgendaDTO obter(LocalDate de, LocalDate ate) {
         List<AgendaDTO.EventoAgenda> eventos = new ArrayList<>();
         LocalDate cursor = de;
         while (!cursor.isAfter(ate)) {
             var dia = DiaSemanaUtil.fromLocalDate(cursor);
-            for (Aula aula : aulaRepository.findByDiaSemana(dia)) {
-                List<ReservaAula> inscritos = reservaAulaRepository.findByAulaAndDataReservaAndStatus(
-                        aula, cursor, StatusReserva.CONFIRMADA);
+            for (HorarioColetivo horario : horarioRepository.findByDiaSemana(dia)) {
+                List<ReservaColetiva> inscritos = reservaColetivaRepository.findByHorarioAndDataReservaAndStatus(
+                        horario, cursor, StatusReserva.CONFIRMADA);
                 eventos.add(new AgendaDTO.EventoAgenda(
-                        "AULA",
-                        aula.getId(),
-                        aula.getTitulo(),
-                        aula.getDiaSemana(),
+                        "HORARIO_COLETIVO",
+                        horario.getId(),
+                        horario.getTitulo(),
+                        horario.getDiaSemana(),
                         cursor,
-                        aula.getHorarioInicio(),
-                        aula.getHorarioFim(),
-                        aula.getEmbarcacaoPrincipal().getNome(),
-                        disponibilidadeService.calcularStatusEfetivo(
-                                aula.getEmbarcacaoPrincipal(), cursor,
-                                aula.getHorarioInicio(), aula.getHorarioFim()),
+                        horario.getHorarioInicio(),
+                        horario.getHorarioFim(),
+                        null,
+                        null,
                         null,
                         inscritos.size(),
-                        aula.getCapacidadeMaxima()
+                        horario.getCapacidadeSlot()
                 ));
             }
             for (ReservaEmbarcacao r : reservaEmbarcacaoRepository.findByData(cursor)) {
@@ -63,8 +60,7 @@ public class AgendaService {
                         r.getHorarioInicio(),
                         r.getHorarioFim(),
                         r.getEmbarcacao().getNome(),
-                        disponibilidadeService.calcularStatusEfetivo(
-                                r.getEmbarcacao(), cursor, r.getHorarioInicio(), r.getHorarioFim()),
+                        null,
                         r.getAluno().getNome(),
                         0,
                         0

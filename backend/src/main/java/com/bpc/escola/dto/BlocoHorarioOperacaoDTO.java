@@ -7,6 +7,6 @@ public record BlocoHorarioOperacaoDTO(
         LocalTime horarioInicio,
         LocalTime horarioFim,
         String statusBloco,
-        List<OperacaoAulaResumoDTO> aulas
+        List<OperacaoHorarioResumoDTO> horarios
 ) {
 }

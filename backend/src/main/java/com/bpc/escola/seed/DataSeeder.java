@@ -16,6 +16,7 @@ import java.time.LocalTime;
 import java.util.*;
 
 @Component
+@org.springframework.core.annotation.Order(1)
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
@@ -24,8 +25,8 @@ public class DataSeeder implements CommandLineRunner {
     private final AlunoPlanoRepository alunoPlanoRepository;
     private final EmbarcacaoRepository embarcacaoRepository;
     private final ComposicaoEmbarcacaoRepository composicaoRepository;
-    private final AulaRepository aulaRepository;
-    private final ReservaAulaRepository reservaAulaRepository;
+    private final HorarioColetivoRepository horarioRepository;
+    private final ReservaColetivaRepository reservaColetivaRepository;
     private final ReservaEmbarcacaoRepository reservaEmbarcacaoRepository;
     private final OcorrenciaRepository ocorrenciaRepository;
     private final ManutencaoRepository manutencaoRepository;
@@ -45,14 +46,17 @@ public class DataSeeder implements CommandLineRunner {
     private void seed() {
         Usuario admin = usuarioRepository.save(Usuario.builder()
                 .nome("Admin Recepção").email("admin@bpc.com").telefone("11999990001")
-                .tipoUsuario(TipoUsuario.ADMIN).build());
+                .tipoUsuario(TipoUsuario.ADMIN).senha(UsuarioSenhaSeeder.SENHA_DEMO).build());
 
         Usuario prof1 = usuarioRepository.save(Usuario.builder()
                 .nome("Prof. Ricardo").email("ricardo@bpc.com").telefone("11999990002")
-                .tipoUsuario(TipoUsuario.PROFESSOR).build());
+                .tipoUsuario(TipoUsuario.PROFESSOR).senha(UsuarioSenhaSeeder.SENHA_DEMO).build());
         Usuario prof2 = usuarioRepository.save(Usuario.builder()
                 .nome("Prof. Marina").email("marina@bpc.com").telefone("11999990003")
-                .tipoUsuario(TipoUsuario.PROFESSOR).build());
+                .tipoUsuario(TipoUsuario.PROFESSOR).senha(UsuarioSenhaSeeder.SENHA_DEMO).build());
+        usuarioRepository.save(Usuario.builder()
+                .nome("Equipe Manutenção").email("manutencao@bpc.com").telefone("11999990099")
+                .tipoUsuario(TipoUsuario.MANUTENCAO).senha(UsuarioSenhaSeeder.SENHA_DEMO).build());
 
         List<Usuario> alunos = new ArrayList<>();
         String[] nomes = {
@@ -66,36 +70,45 @@ public class DataSeeder implements CommandLineRunner {
         for (int i = 0; i < nomes.length; i++) {
             alunos.add(usuarioRepository.save(Usuario.builder()
                     .nome(nomes[i]).email("aluno" + (i + 1) + "@bpc.com").telefone("1198888" + String.format("%04d", i))
-                    .tipoUsuario(TipoUsuario.ALUNO).build()));
+                    .tipoUsuario(TipoUsuario.ALUNO).senha(UsuarioSenhaSeeder.SENHA_DEMO).build()));
         }
 
-        Plano plano1x = planoRepository.save(Plano.builder().nome("1x Semana").tipoPlano(TipoPlano.UMA_AULA_SEMANA)
-                .quantidadeAulasSemana(1).ilimitado(false).validadeMeses(12).build());
-        Plano plano2x = planoRepository.save(Plano.builder().nome("2x Semana").tipoPlano(TipoPlano.DUAS_AULAS_SEMANA)
-                .quantidadeAulasSemana(2).ilimitado(false).validadeMeses(12).build());
-        Plano planoIlimitado = planoRepository.save(Plano.builder().nome("Ilimitado").tipoPlano(TipoPlano.ILIMITADO)
-                .ilimitado(true).validadeMeses(12).build());
-        Plano planoAvulso = planoRepository.save(Plano.builder().nome("Pacote 10 Remadas").tipoPlano(TipoPlano.AVULSO_REMADAS)
-                .quantidadeRemadas(10).ilimitado(false).validadeMeses(6).build());
-
-        LocalDate hoje = RelogioSaoPaulo.hoje();
-        for (int i = 0; i < alunos.size(); i++) {
-            Plano p = switch (i % 4) {
-                case 0 -> plano1x;
-                case 1 -> plano2x;
-                case 2 -> planoIlimitado;
-                default -> planoAvulso;
-            };
-            alunoPlanoRepository.save(AlunoPlano.builder()
-                    .aluno(alunos.get(i)).plano(p).dataInicio(hoje.minusMonths(1))
-                    .dataFim(hoje.plusMonths(11)).ativo(true).build());
-        }
+        vincularPlanosAlunos(alunos);
 
         List<Embarcacao> embarcacoes = criarEmbarcacoes();
-        List<Usuario> professores = List.of(prof1, prof2);
-        List<Aula> aulas = criarAulas(embarcacoes, professores);
-        criarReservas(alunos, aulas, embarcacoes, admin);
+        List<HorarioColetivo> horarios = criarHorariosColetivos();
+        criarReservasColetivas(alunos, horarios, embarcacoes);
         criarOcorrenciasEManutencoes(embarcacoes, admin);
+    }
+
+    private void vincularPlanosAlunos(List<Usuario> alunos) {
+        LocalDate hoje = RelogioSaoPaulo.hoje();
+        Plano plano1x = planoRepository.findByNome("1x Semana — Mensal").orElseThrow();
+        Plano plano2x = planoRepository.findByNome("2x Semana — Mensal").orElseThrow();
+        Plano plano3x = planoRepository.findByNome("3x Semana — Mensal").orElseThrow();
+        Plano planoLivre = planoRepository.findByNome("Livre — Mensal").orElseThrow();
+        Plano pacote10 = planoRepository.findByNome("Pacote 10 Remadas").orElseThrow();
+        Plano remadaAvulsa = planoRepository.findByNome("Remada Avulsa — Adulto").orElseThrow();
+        Plano wellhub = planoRepository.findByNome("Wellhub").orElseThrow();
+
+        for (int i = 0; i < alunos.size(); i++) {
+            if (i % 10 == 9) {
+                continue;
+            }
+            Plano p = switch (i % 10) {
+                case 0, 1 -> plano1x;
+                case 2, 3 -> plano2x;
+                case 4 -> plano3x;
+                case 5 -> planoLivre;
+                case 6, 7 -> pacote10;
+                case 8 -> remadaAvulsa;
+                default -> wellhub;
+            };
+            int validade = p.getValidadeMeses() != null ? p.getValidadeMeses() : 12;
+            alunoPlanoRepository.save(AlunoPlano.builder()
+                    .aluno(alunos.get(i)).plano(p).dataInicio(hoje.minusMonths(1))
+                    .dataFim(hoje.plusMonths(validade - 1L)).ativo(true).build());
+        }
     }
 
     private List<Embarcacao> criarEmbarcacoes() {
@@ -143,63 +156,57 @@ public class DataSeeder implements CommandLineRunner {
                 .nome(nome).tipo(tipo).capacidade(cap).status(status).build());
     }
 
-    private List<Aula> criarAulas(List<Embarcacao> embarcacoes, List<Usuario> professores) {
-        Map<DiaSemana, List<LocalTime[]>> horarios = HorariosFixos.horarios();
-        List<Aula> aulas = new ArrayList<>();
-        int embIdx = 0;
-        int profIdx = 0;
-        for (var entry : horarios.entrySet()) {
+    private List<HorarioColetivo> criarHorariosColetivos() {
+        Map<DiaSemana, List<LocalTime[]>> mapa = HorariosFixos.horarios();
+        List<HorarioColetivo> horarios = new ArrayList<>();
+        for (var entry : mapa.entrySet()) {
             DiaSemana dia = entry.getKey();
             for (LocalTime[] slot : entry.getValue()) {
-                Embarcacao emb = embarcacoes.get(embIdx % embarcacoes.size());
-                Usuario prof = professores.get(profIdx % professores.size());
-                String titulo = String.format("Aula coletiva %s %s-%s", dia.name().substring(0, 3),
-                        slot[0], slot[1]);
-                aulas.add(aulaRepository.save(Aula.builder()
+                String titulo = String.format("Coletiva %s %s-%s", dia.name().substring(0, 3), slot[0], slot[1]);
+                horarios.add(horarioRepository.save(HorarioColetivo.builder()
                         .titulo(titulo)
                         .diaSemana(dia)
                         .horarioInicio(slot[0])
                         .horarioFim(slot[1])
-                        .capacidadeMaxima(12)
-                        .professor(prof)
-                        .embarcacaoPrincipal(emb)
+                        .capacidadeSlot(42)
                         .build()));
-                embIdx++;
-                profIdx++;
             }
         }
-        return aulas;
+        return horarios;
     }
 
-    private void criarReservas(List<Usuario> alunos, List<Aula> aulas, List<Embarcacao> embarcacoes, Usuario admin) {
+    private void criarReservasColetivas(List<Usuario> alunos, List<HorarioColetivo> horarios, List<Embarcacao> embarcacoes) {
         LocalDate hoje = RelogioSaoPaulo.hoje();
         LocalTime agora = RelogioSaoPaulo.hora();
         DiaSemana dia = diaFromDate(hoje);
-        int[] quantidades = {0, 3, 5, 8, 12, 4, 7, 2, 9, 11, 6, 1};
+        int[] quantidades = {0, 3, 5, 8, 18, 4, 7, 2, 9, 11, 6, 1};
+        OrigemReserva[] origens = {OrigemReserva.APP, OrigemReserva.MANUAL, OrigemReserva.WELLHUB};
 
-        List<Aula> aulasHoje = aulas.stream()
-                .filter(a -> a.getDiaSemana() == dia)
-                .sorted(Comparator.comparing(Aula::getHorarioInicio))
+        List<HorarioColetivo> horariosHoje = horarios.stream()
+                .filter(h -> h.getDiaSemana() == dia)
+                .sorted(Comparator.comparing(HorarioColetivo::getHorarioInicio))
                 .toList();
 
         int alunoIdx = 0;
-        for (int i = 0; i < aulasHoje.size(); i++) {
-            Aula aula = aulasHoje.get(i);
-            int qtd = Math.min(quantidades[i % quantidades.length], aula.getCapacidadeMaxima());
-            Set<Long> usadosNaAula = new HashSet<>();
+        for (int i = 0; i < horariosHoje.size(); i++) {
+            HorarioColetivo horario = horariosHoje.get(i);
+            int qtd = Math.min(quantidades[i % quantidades.length], horario.getCapacidadeSlot());
+            Set<Long> usados = new HashSet<>();
             int criadas = 0;
             while (criadas < qtd && alunoIdx < alunos.size() * 3) {
                 Usuario aluno = alunos.get(alunoIdx % alunos.size());
                 alunoIdx++;
-                if (!usadosNaAula.add(aluno.getId())) {
-                    continue;
-                }
-                boolean slotIniciou = !agora.isBefore(aula.getHorarioInicio());
+                if (!usados.add(aluno.getId())) continue;
+                boolean slotIniciou = !agora.isBefore(horario.getHorarioInicio());
                 boolean presente = slotIniciou && criadas < 2;
-                reservaAulaRepository.save(ReservaAula.builder()
-                        .aula(aula).aluno(aluno)
-                        .status(StatusReserva.CONFIRMADA).dataReserva(hoje)
-                        .presente(presente).criadoEm(RelogioSaoPaulo.dataHora()).build());
+                reservaColetivaRepository.save(ReservaColetiva.builder()
+                        .horario(horario).aluno(aluno)
+                        .status(StatusReserva.CONFIRMADA)
+                        .origem(origens[criadas % origens.length])
+                        .dataReserva(hoje)
+                        .presente(presente)
+                        .criadoEm(RelogioSaoPaulo.dataHora())
+                        .build());
                 criadas++;
             }
         }

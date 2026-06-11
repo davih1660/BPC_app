@@ -1,6 +1,8 @@
 package com.bpc.escola.controller;
 
 import com.bpc.escola.dto.AlunoPlanoDTO;
+import com.bpc.escola.dto.AlunoSituacaoDTO;
+import com.bpc.escola.dto.AtualizarPlanoDTO;
 import com.bpc.escola.dto.PlanoDTO;
 import com.bpc.escola.service.PlanoService;
 import com.bpc.escola.service.RelogioSaoPaulo;
@@ -21,6 +23,16 @@ public class PlanoController {
     @GetMapping("/planos")
     public List<PlanoDTO> listarPlanos() {
         return planoService.listarPlanos();
+    }
+
+    @PutMapping("/planos/{id}")
+    public PlanoDTO atualizarPlano(@PathVariable Long id, @RequestBody AtualizarPlanoDTO dto) {
+        return planoService.atualizar(id, dto);
+    }
+
+    @GetMapping("/planos/situacoes")
+    public List<AlunoSituacaoDTO> listarSituacoesAlunos() {
+        return planoService.listarSituacoesAlunos();
     }
 
     @GetMapping("/alunos/{alunoId}/planos")

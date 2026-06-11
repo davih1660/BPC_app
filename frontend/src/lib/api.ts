@@ -1,9 +1,30 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+const TOKEN_KEY = "authToken";
 
+let authToken: string | null = null;
 let usuarioId: number | null = null;
 
 export function imagemOcorrenciaUrl(imagemId: number) {
   return `${API_URL}/ocorrencias/imagens/${imagemId}/arquivo`;
+}
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+  if (typeof window !== "undefined") {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+export function getAuthToken() {
+  return authToken;
+}
+
+export function loadStoredToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(TOKEN_KEY);
+  if (stored) authToken = stored;
+  return stored;
 }
 
 export function setUsuarioId(id: number | null) {
@@ -22,14 +43,22 @@ export class ApiError extends Error {
   }
 }
 
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  } else if (usuarioId && process.env.NODE_ENV === "development") {
+    headers["X-Usuario-Id"] = String(usuarioId);
+  }
+  return headers;
+}
+
 async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 15_000): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...authHeaders(),
     ...(options.headers as Record<string, string>),
   };
-  if (usuarioId) {
-    headers["X-Usuario-Id"] = String(usuarioId);
-  }
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -53,7 +82,7 @@ async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 1
       );
     }
     throw new ApiError(
-      "Não foi possível conectar à API em localhost:8080.",
+      "Não foi possível conectar à API. Verifique se o backend está online.",
       "NETWORK_ERROR"
     );
   } finally {
@@ -62,10 +91,7 @@ async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 1
 }
 
 async function upload<T>(path: string, formData: FormData): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (usuarioId) {
-    headers["X-Usuario-Id"] = String(usuarioId);
-  }
+  const headers: Record<string, string> = { ...authHeaders() };
   const res = await fetch(`${API_URL}${path}`, { method: "POST", headers, body: formData });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText, code: "ERROR" }));

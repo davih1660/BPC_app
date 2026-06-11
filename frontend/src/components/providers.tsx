@@ -7,7 +7,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       {children}
-      <Toaster position="top-right" richColors />
+      <Toaster
+        position="top-center"
+        richColors
+        toastOptions={{
+          className: "md:!top-4",
+        }}
+        mobileOffset={{ bottom: "5rem" }}
+      />
     </AuthProvider>
   );
 }

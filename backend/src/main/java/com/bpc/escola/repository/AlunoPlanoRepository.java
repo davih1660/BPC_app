@@ -1,6 +1,7 @@
 package com.bpc.escola.repository;
 
 import com.bpc.escola.domain.AlunoPlano;
+import com.bpc.escola.domain.Plano;
 import com.bpc.escola.domain.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,4 +13,8 @@ public interface AlunoPlanoRepository extends JpaRepository<AlunoPlano, Long> {
     List<AlunoPlano> findByAluno(Usuario aluno);
 
     Optional<AlunoPlano> findFirstByAlunoAndAtivoTrue(Usuario aluno);
+
+    List<AlunoPlano> findByAtivoTrue();
+
+    long countByPlano(Plano plano);
 }

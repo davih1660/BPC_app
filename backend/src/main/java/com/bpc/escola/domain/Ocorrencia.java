@@ -28,6 +28,10 @@ public class Ocorrencia {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_ocorrencia_id")
+    private TipoOcorrencia tipoOcorrencia;
+
     @Column(nullable = false)
     private String titulo;
 

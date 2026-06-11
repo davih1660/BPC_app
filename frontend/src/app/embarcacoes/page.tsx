@@ -9,11 +9,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loading } from "@/components/ui/loading";
-import { statusEmbarcacaoClass, statusEmbarcacaoLabel } from "@/lib/labels";
+import {
+  gravidadeLabel,
+  gravidadeVariant,
+  statusEmbarcacaoVariant,
+  statusEmbarcacaoLabel,
+  statusManutencaoLabel,
+  statusManutencaoVariant,
+  statusOcorrenciaLabel,
+  statusOcorrenciaVariant,
+} from "@/lib/labels";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Ban } from "lucide-react";
 import { toast } from "sonner";
+import { usePermissoes } from "@/hooks/use-permissoes";
 
 export default function EmbarcacoesPage() {
+  const { funcionalidades, perfilLabel } = usePermissoes();
   const [data, setData] = useState<PageResponse<Embarcacao> | null>(null);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
   const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
@@ -56,8 +69,17 @@ export default function EmbarcacoesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Gestão de Embarcações</h1>
-      <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
+      <PageHeader
+        title="Gestão de Embarcações"
+        description={
+          funcionalidades.interditarEmbarcacao
+            ? "Interdição e monitoramento de status"
+            : `Visão ${perfilLabel.toLowerCase()} — consulta`
+        }
+        actions={
+          <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
+        }
+      />
 
       <Tabs defaultValue="lista">
         <TabsList>
@@ -67,22 +89,24 @@ export default function EmbarcacoesPage() {
         </TabsList>
 
         <TabsContent value="lista">
-          {loading ? <Loading /> : (
+          {loading ? <Loading /> : data?.content.length === 0 ? (
+            <EmptyState title="Nenhuma embarcação encontrada" description={q ? "Tente outro termo de busca." : undefined} />
+          ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data?.content.map((e) => (
-                <Card key={e.id}>
+                <Card key={e.id} variant="outlined">
                   <CardContent className="pt-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-semibold">{e.nome}</p>
-                        <p className="text-xs text-slate-500">{e.tipo} · cap. {e.capacidade}</p>
+                        <p className="font-semibold text-foreground">{e.nome}</p>
+                        <p className="text-xs text-muted">{e.tipo} · cap. {e.capacidade}</p>
                       </div>
-                      <Badge className={statusEmbarcacaoClass[status(e)]}>
+                      <Badge variant={statusEmbarcacaoVariant[status(e)]}>
                         {statusEmbarcacaoLabel[status(e)]}
                       </Badge>
                     </div>
-                    {e.observacoes && <p className="text-xs text-slate-500 mt-2">{e.observacoes}</p>}
-                    {status(e) !== "INTERDITADA" && (
+                    {e.observacoes && <p className="text-xs text-muted mt-2">{e.observacoes}</p>}
+                    {funcionalidades.interditarEmbarcacao && status(e) !== "INTERDITADA" && (
                       <Button variant="destructive" size="sm" className="mt-3 w-full" onClick={() => interditar(e.id)}>
                         <Ban className="h-3 w-3 mr-1" /> Interditar
                       </Button>
@@ -95,23 +119,60 @@ export default function EmbarcacoesPage() {
         </TabsContent>
 
         <TabsContent value="ocorrencias">
-          <ul className="space-y-2">
-            {ocorrencias.map((o) => (
-              <li key={o.id} className="p-3 border rounded-lg bg-white text-sm">
-                <span className="font-medium">{o.titulo}</span> — {o.embarcacaoNome} ({o.status})
-              </li>
-            ))}
-          </ul>
+          {ocorrencias.length === 0 ? (
+            <EmptyState title="Nenhuma ocorrência" description="Não há ocorrências registradas." />
+          ) : (
+            <ul className="space-y-2">
+              {ocorrencias.map((o) => (
+                <li key={o.id}>
+                  <Card variant="outlined">
+                    <CardContent className="py-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground">{o.titulo}</p>
+                        <p className="text-sm text-muted">{o.embarcacaoNome}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                        <Badge variant={gravidadeVariant[o.gravidade]}>
+                          {gravidadeLabel[o.gravidade]}
+                        </Badge>
+                        <Badge variant={statusOcorrenciaVariant[o.status]}>
+                          {statusOcorrenciaLabel[o.status]}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          )}
         </TabsContent>
 
         <TabsContent value="manutencoes">
-          <ul className="space-y-2">
-            {manutencoes.map((m) => (
-              <li key={m.id} className="p-3 border rounded-lg bg-white text-sm">
-                {m.embarcacaoNome}: {m.descricao} ({m.status})
-              </li>
-            ))}
-          </ul>
+          {manutencoes.length === 0 ? (
+            <EmptyState title="Nenhuma manutenção" description="Não há manutenções registradas." />
+          ) : (
+            <ul className="space-y-2">
+              {manutencoes.map((m) => (
+                <li key={m.id}>
+                  <Card variant="outlined">
+                    <CardContent className="py-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground">{m.embarcacaoNome}</p>
+                        {m.descricao && <p className="text-sm text-muted">{m.descricao}</p>}
+                        <p className="text-xs text-muted mt-0.5">
+                          {m.dataInicio}
+                          {m.dataFim ? ` → ${m.dataFim}` : ""}
+                        </p>
+                      </div>
+                      <Badge variant={statusManutencaoVariant[m.status]}>
+                        {statusManutencaoLabel[m.status]}
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          )}
         </TabsContent>
       </Tabs>
     </div>

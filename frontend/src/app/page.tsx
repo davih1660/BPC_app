@@ -6,31 +6,32 @@ import type { BlocoHorarioOperacao, Dashboard } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/ui/loading";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
+import { StatTile } from "@/components/layout/stat-tile";
 import { ListaInscritos } from "@/components/domain/lista-inscritos";
-import { statusEmbarcacaoClass, statusSlotClass, statusSlotLabel, formatHorario } from "@/lib/labels";
+import { statusEmbarcacaoVariant, statusSlotVariant, statusSlotLabel, formatHorario } from "@/lib/labels";
 import { Ship, AlertTriangle, Calendar, Clock, Users } from "lucide-react";
 import { toast } from "sonner";
+import { usePermissoes } from "@/hooks/use-permissoes";
 
-function BlocoAulas({ titulo, bloco }: { titulo: string; bloco: BlocoHorarioOperacao }) {
+function BlocoHorarios({ titulo, bloco }: { titulo: string; bloco: BlocoHorarioOperacao }) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-semibold text-slate-800">{titulo}</p>
-        <span className="text-sm text-slate-600">
+        <p className="text-sm font-semibold text-foreground">{titulo}</p>
+        <span className="text-sm text-muted">
           {formatHorario(bloco.horarioInicio, bloco.horarioFim)}
         </span>
       </div>
       <ul className="space-y-2">
-        {bloco.aulas.map((item) => (
-          <li key={item.aula.id} className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-medium">Prof. {item.aula.professorNome}</span>
-            <span className="text-slate-500">{item.aula.embarcacaoPrincipalNome}</span>
-            <Badge className="bg-slate-100 text-slate-700">
+        {bloco.horarios.map((item) => (
+          <li key={item.horario.id} className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-medium">{item.horario.titulo}</span>
+            <Badge variant="neutral">
               {item.totalInscritos}/{item.capacidade} inscritos
             </Badge>
-            {item.lotada && (
-              <Badge className="bg-amber-100 text-amber-800">Lotada</Badge>
-            )}
+            {item.lotada && <Badge variant="warning">Lotada</Badge>}
           </li>
         ))}
       </ul>
@@ -39,6 +40,7 @@ function BlocoAulas({ titulo, bloco }: { titulo: string; bloco: BlocoHorarioOper
 }
 
 export default function DashboardPage() {
+  const { funcionalidades, perfilLabel } = usePermissoes();
   const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,7 +60,7 @@ export default function DashboardPage() {
 
   const togglePresenca = async (reservaId: number, presente: boolean) => {
     try {
-      await api.patch(`/reservas-aula/${reservaId}/presenca`, { presente });
+      await api.patch(`/reservas-coletivas/${reservaId}/presenca`, { presente });
       load();
       toast.success("Presença atualizada");
     } catch (e) {
@@ -67,145 +69,112 @@ export default function DashboardPage() {
   };
 
   if (loading && !data) return <Loading />;
-  if (!data) return <p className="text-slate-500">Sem dados</p>;
+  if (!data) return <EmptyState title="Sem dados" description="Não foi possível carregar o dashboard." />;
 
   const destaque = data.destaque;
   const proximas = data.proximasAulas;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Operação — Recepção</h1>
-          <p className="text-slate-500 text-sm">Controle por horário da aula · atualiza a cada 1 min</p>
-        </div>
-        <p className="text-xs text-slate-400 flex items-center gap-1">
-          <Users className="h-3 w-3" /> {data.alunosNoDia} alunos no dia (total)
-        </p>
+      <PageHeader
+        title="Dashboard"
+        description={`Visão ${perfilLabel.toLowerCase()} · atualiza a cada 1 min`}
+        actions={
+          <p className="text-xs text-muted flex items-center gap-1">
+            <Users className="h-3 w-3" /> {data.alunosNoDia} alunos hoje
+          </p>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatTile label="Embarcações disponíveis" value={data.embarcacoesDisponiveis.length} icon={Ship} tone="success" />
+        <StatTile label="Ocorrências abertas" value={data.ocorrenciasAbertas.length} icon={AlertTriangle} tone="error" />
+        <StatTile label="Horários lotados hoje" value={data.horariosLotados.length} icon={Calendar} tone="warning" />
       </div>
 
-      <Card className={destaque ? "border-2 border-sky-200 shadow-md" : ""}>
+      <Card variant="elevated">
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Clock className="h-5 w-5 text-sky-600" />
+            <Clock className="h-5 w-5 text-primary" />
             <CardTitle className="text-xl">
-              {destaque ? destaque.aula.titulo : "Sem aula em andamento ou próxima hoje"}
+              {destaque ? destaque.horario.titulo : "Sem horário em andamento hoje"}
             </CardTitle>
             {destaque && (
-              <Badge className={statusSlotClass[destaque.statusSlot]}>
+              <Badge variant={statusSlotVariant[destaque.statusSlot]}>
                 {statusSlotLabel[destaque.statusSlot]}
               </Badge>
             )}
-            {destaque?.lotada && (
-              <Badge className="bg-amber-100 text-amber-800">Lotada</Badge>
-            )}
+            {destaque?.lotada && <Badge variant="warning">Lotada</Badge>}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {destaque ? (
             <>
-              <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                <span className="font-medium text-slate-900">
-                  {formatHorario(destaque.aula.horarioInicio, destaque.aula.horarioFim)}
+              <div className="flex flex-wrap gap-4 text-sm text-muted">
+                <span className="font-medium text-foreground">
+                  {formatHorario(destaque.horario.horarioInicio, destaque.horario.horarioFim)}
                 </span>
-                <span>Prof. {destaque.aula.professorNome}</span>
-                <span>{destaque.aula.embarcacaoPrincipalNome}</span>
-                <span className="font-semibold">
+                <span className="font-semibold text-foreground">
                   {destaque.totalInscritos}/{destaque.capacidade} inscritos
                 </span>
               </div>
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2">Alunos agendados</p>
-                <ListaInscritos
-                  inscritos={destaque.inscritos}
-                  onPresenca={togglePresenca}
-                />
-              </div>
+              <ListaInscritos
+                inscritos={destaque.inscritos}
+                onPresenca={funcionalidades.checkInPresenca ? togglePresenca : undefined}
+              />
             </>
           ) : (
-            <p className="text-sm text-slate-500">Não há mais aulas programadas para hoje ou o expediente encerrou.</p>
+            <EmptyState title="Expediente encerrado" description="Não há horários em andamento ou próximos hoje." className="py-8" />
           )}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card variant="outlined">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Próximas aulas</CardTitle>
+          <CardTitle className="text-lg">Próximos horários</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!proximas.imediato && !proximas.seguinte ? (
-            <p className="text-sm text-slate-500">Não há mais aulas programadas para hoje.</p>
+            <p className="text-sm text-muted">Não há mais horários programados para hoje.</p>
           ) : (
             <>
               {proximas.imediato && (
-                <BlocoAulas
-                  titulo={proximas.imediato.statusBloco === "EM_ANDAMENTO" ? "Agora" : "Próxima imediata"}
+                <BlocoHorarios
+                  titulo={proximas.imediato.statusBloco === "EM_ANDAMENTO" ? "Agora" : "Próximo imediato"}
                   bloco={proximas.imediato}
                 />
               )}
-              {proximas.imediato && proximas.seguinte && (
-                <div className="border-t border-slate-100 pt-4" />
-              )}
-              {proximas.seguinte && (
-                <BlocoAulas titulo="Em seguida" bloco={proximas.seguinte} />
-              )}
+              {proximas.imediato && proximas.seguinte && <div className="border-t border-outline pt-4" />}
+              {proximas.seguinte && <BlocoHorarios titulo="Em seguida" bloco={proximas.seguinte} />}
             </>
           )}
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-emerald-100"><Ship className="h-6 w-6 text-emerald-600" /></div>
-            <div>
-              <p className="text-2xl font-bold">{data.embarcacoesDisponiveis.length}</p>
-              <p className="text-sm text-slate-500">Embarcações disponíveis</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-red-100"><AlertTriangle className="h-6 w-6 text-red-600" /></div>
-            <div>
-              <p className="text-2xl font-bold">{data.ocorrenciasAbertas.length}</p>
-              <p className="text-sm text-slate-500">Ocorrências abertas</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-amber-100"><Calendar className="h-6 w-6 text-amber-600" /></div>
-            <div>
-              <p className="text-2xl font-bold">{data.aulasLotadas.length}</p>
-              <p className="text-sm text-slate-500">Horários lotados hoje</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card variant="outlined">
           <CardHeader><CardTitle>Embarcações disponíveis</CardTitle></CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {data.embarcacoesDisponiveis.map((e) => (
-              <Badge key={e.id} className={statusEmbarcacaoClass.DISPONIVEL}>
-                {e.nome}
-              </Badge>
+              <Badge key={e.id} variant={statusEmbarcacaoVariant.DISPONIVEL}>{e.nome}</Badge>
             ))}
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="outlined">
           <CardHeader><CardTitle>Ocorrências abertas</CardTitle></CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {data.ocorrenciasAbertas.map((o) => (
-                <li key={o.id} className="text-sm">
-                  <span className="font-medium">{o.titulo}</span>
-                  <span className="text-slate-500"> — {o.embarcacaoNome}</span>
-                </li>
-              ))}
-            </ul>
+            {data.ocorrenciasAbertas.length === 0 ? (
+              <p className="text-sm text-muted">Nenhuma ocorrência aberta.</p>
+            ) : (
+              <ul className="space-y-2">
+                {data.ocorrenciasAbertas.map((o) => (
+                  <li key={o.id} className="text-sm">
+                    <span className="font-medium">{o.titulo}</span>
+                    <span className="text-muted"> — {o.embarcacaoNome}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

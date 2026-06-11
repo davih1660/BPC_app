@@ -1,8 +1,8 @@
 package com.bpc.escola.controller;
 
-import com.bpc.escola.dto.OperacaoAulaDTO;
-import com.bpc.escola.dto.OperacaoDiaDTO;
-import com.bpc.escola.service.AulaOperacionalService;
+import com.bpc.escola.dto.OperacaoDiaHorarioDTO;
+import com.bpc.escola.dto.OperacaoHorarioSlotDTO;
+import com.bpc.escola.service.HorarioOperacionalService;
 import com.bpc.escola.service.RelogioSaoPaulo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,17 +18,17 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class OperacaoController {
 
-    private final AulaOperacionalService aulaOperacionalService;
+    private final HorarioOperacionalService horarioOperacionalService;
 
-    @GetMapping("/aula-atual")
-    public OperacaoAulaDTO aulaAtual() {
-        return aulaOperacionalService.obterOperacaoAtual();
+    @GetMapping("/horario-atual")
+    public OperacaoHorarioSlotDTO horarioAtual() {
+        return horarioOperacionalService.obterOperacaoAtual();
     }
 
     @GetMapping("/dia")
-    public OperacaoDiaDTO dia(
+    public OperacaoDiaHorarioDTO dia(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
         LocalDate ref = data != null ? data : RelogioSaoPaulo.hoje();
-        return aulaOperacionalService.obterDia(ref);
+        return horarioOperacionalService.obterDia(ref);
     }
 }

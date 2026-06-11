@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Usuario, PageResponse, Plano, AlunoPlano } from "@/lib/types";
+import type { Usuario, PageResponse, Plano, AlunoPlano, AlunoSituacao } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { situacaoAlunoVariant, situacaoAlunoLabel } from "@/lib/labels";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -21,6 +25,7 @@ export default function AlunosPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [planosAluno, setPlanosAluno] = useState<AlunoPlano[]>([]);
+  const [situacoes, setSituacoes] = useState<Record<number, AlunoSituacao>>({});
   const [selected, setSelected] = useState<Usuario | null>(null);
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", tipoUsuario: "ALUNO" as const });
 
@@ -32,7 +37,12 @@ export default function AlunosPage() {
   };
 
   useEffect(() => { load(); }, [page, q]);
-  useEffect(() => { api.get<Plano[]>("/planos").then(setPlanos).catch(() => {}); }, []);
+  useEffect(() => {
+    api.get<Plano[]>("/planos").then(setPlanos).catch(() => {});
+    api.get<AlunoSituacao[]>("/planos/situacoes")
+      .then((lista) => setSituacoes(Object.fromEntries(lista.map((s) => [s.alunoId, s]))))
+      .catch(() => {});
+  }, []);
 
   const openEdit = (u?: Usuario) => {
     if (u) {
@@ -58,6 +68,9 @@ export default function AlunosPage() {
       }
       setDialogOpen(false);
       load();
+      api.get<AlunoSituacao[]>("/planos/situacoes")
+        .then((lista) => setSituacoes(Object.fromEntries(lista.map((s) => [s.alunoId, s]))))
+        .catch(() => {});
     } catch (e) {
       toast.error((e as ApiError).message);
     }
@@ -70,6 +83,9 @@ export default function AlunosPage() {
       toast.success("Plano vinculado");
       const p = await api.get<AlunoPlano[]>(`/alunos/${selected.id}/planos`);
       setPlanosAluno(p);
+      api.get<AlunoSituacao[]>("/planos/situacoes")
+        .then((lista) => setSituacoes(Object.fromEntries(lista.map((s) => [s.alunoId, s]))))
+        .catch(() => {});
     } catch (e) {
       toast.error((e as ApiError).message);
     }
@@ -77,38 +93,57 @@ export default function AlunosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Gestão de Alunos</h1>
-        <Button onClick={() => openEdit()}><Plus className="h-4 w-4" /> Novo aluno</Button>
-      </div>
+      <PageHeader
+        title="Gestão de Alunos"
+        description="Cadastro e vínculo de planos"
+        actions={
+          <>
+            <Input placeholder="Buscar nome ou email..." value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} className="max-w-xs" />
+            <Button onClick={() => openEdit()}><Plus className="h-4 w-4" /> Novo aluno</Button>
+          </>
+        }
+      />
 
-      <div className="flex gap-2">
-        <Input placeholder="Buscar nome ou email..." value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} className="max-w-sm" />
-      </div>
-
-      {loading ? <Loading /> : (
-        <Card>
-          <CardContent className="p-0">
+      {loading ? <Loading /> : alunos?.content.length === 0 ? (
+        <EmptyState title="Nenhum aluno encontrado" description={q ? "Tente outro termo de busca." : "Cadastre o primeiro aluno."} />
+      ) : (
+        <Card variant="outlined">
+          <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
+              <thead className="bg-surface-variant border-b border-outline sticky top-0">
                 <tr>
                   <th className="text-left p-3">Nome</th>
                   <th className="text-left p-3">Email</th>
+                  <th className="text-left p-3">Situação</th>
+                  <th className="text-left p-3">Plano</th>
                   <th className="text-left p-3">Telefone</th>
                   <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {alunos?.content.map((a) => (
-                  <tr key={a.id} className="border-b hover:bg-slate-50">
+                {alunos?.content.map((a) => {
+                  const sit = situacoes[a.id];
+                  return (
+                  <tr key={a.id} className="border-b border-outline even:bg-surface-variant/30 hover:bg-surface-variant/50">
                     <td className="p-3">{a.nome}</td>
-                    <td className="p-3 text-slate-600">{a.email}</td>
+                    <td className="p-3 text-muted">{a.email}</td>
+                    <td className="p-3">
+                      {sit ? (
+                        <Badge variant={situacaoAlunoVariant[sit.situacao]}>
+                          {situacaoAlunoLabel[sit.situacao]}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-muted">{sit?.planoNome ?? "—"}</td>
                     <td className="p-3">{a.telefone}</td>
                     <td className="p-3 text-right">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(a)}><Pencil className="h-4 w-4" /></Button>
                     </td>
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
             {alunos && alunos.totalPages > 1 && (
@@ -131,6 +166,11 @@ export default function AlunosPage() {
             {selected && (
               <div className="border-t pt-3">
                 <p className="text-sm font-medium mb-2">Planos</p>
+                {selected && situacoes[selected.id] && (
+                  <Badge variant={situacaoAlunoVariant[situacoes[selected.id].situacao]} className="mb-2">
+                    {situacaoAlunoLabel[situacoes[selected.id].situacao]}
+                  </Badge>
+                )}
                 <ul className="text-sm text-slate-600 mb-2">
                   {planosAluno.map((ap) => (
                     <li key={ap.id}>{ap.plano.nome} {ap.ativo ? "(ativo)" : "(inativo)"}</li>

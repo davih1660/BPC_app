@@ -1,23 +1,29 @@
 package com.bpc.escola.service;
 
 import com.bpc.escola.domain.AlunoPlano;
+import com.bpc.escola.domain.Plano;
 import com.bpc.escola.domain.Usuario;
 import com.bpc.escola.domain.enums.StatusReserva;
 import com.bpc.escola.domain.enums.TipoPlano;
 import com.bpc.escola.exception.BusinessException;
 import com.bpc.escola.repository.AlunoPlanoRepository;
 import com.bpc.escola.repository.ReservaAulaRepository;
+import com.bpc.escola.repository.ReservaColetivaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
+
 @Service
 @RequiredArgsConstructor
 public class PlanoValidacaoService {
 
+    private static final int WELLHUB_LIMITE_MES_PADRAO = 8;
+
     private final AlunoPlanoRepository alunoPlanoRepository;
     private final ReservaAulaRepository reservaAulaRepository;
+    private final ReservaColetivaRepository reservaColetivaRepository;
 
     public AlunoPlano obterPlanoAtivo(Usuario aluno) {
         return alunoPlanoRepository.findFirstByAlunoAndAtivoTrue(aluno)
@@ -25,10 +31,23 @@ public class PlanoValidacaoService {
     }
 
     public void validarReservaAula(Usuario aluno, LocalDate dataReserva) {
-        AlunoPlano alunoPlano = obterPlanoAtivo(aluno);
-        TipoPlano tipo = alunoPlano.getPlano().getTipoPlano();
+        validarReservaColetiva(aluno, dataReserva);
+    }
 
-        if (tipo == TipoPlano.ILIMITADO || Boolean.TRUE.equals(alunoPlano.getPlano().getIlimitado())) {
+    public void validarReservaColetiva(Usuario aluno, LocalDate dataReserva) {
+        AlunoPlano alunoPlano = obterPlanoAtivo(aluno);
+        Plano plano = alunoPlano.getPlano();
+        TipoPlano tipo = plano.getTipoPlano();
+
+        if (tipo == TipoPlano.ILIMITADO || Boolean.TRUE.equals(plano.getIlimitado())) {
+            return;
+        }
+
+        if (tipo == TipoPlano.WELLHUB || plano.getQuantidadeAulasMes() != null) {
+            int limite = plano.getQuantidadeAulasMes() != null
+                    ? plano.getQuantidadeAulasMes()
+                    : WELLHUB_LIMITE_MES_PADRAO;
+            validarLimiteMensal(aluno, dataReserva, limite);
             return;
         }
 
@@ -36,12 +55,15 @@ public class PlanoValidacaoService {
         LocalDate inicioSemana = dataReserva.with(weekFields.dayOfWeek(), 1);
         LocalDate fimSemana = inicioSemana.plusDays(6);
 
-        long reservasNaSemana = reservaAulaRepository.countByAlunoAndStatusAndDataReservaBetween(
+        long reservasNaSemana = reservaColetivaRepository.countByAlunoAndStatusAndDataReservaBetween(
+                aluno, StatusReserva.CONFIRMADA, inicioSemana, fimSemana)
+                + reservaAulaRepository.countByAlunoAndStatusAndDataReservaBetween(
                 aluno, StatusReserva.CONFIRMADA, inicioSemana, fimSemana);
 
         int limite = switch (tipo) {
             case UMA_AULA_SEMANA -> 1;
             case DUAS_AULAS_SEMANA -> 2;
+            case TRES_AULAS_SEMANA -> 3;
             default -> Integer.MAX_VALUE;
         };
 
@@ -49,6 +71,22 @@ public class PlanoValidacaoService {
             throw new BusinessException(
                     "Limite de aulas por semana atingido para o plano (" + limite + "/semana).",
                     "PLANO_LIMITE_SEMANA");
+        }
+    }
+
+    private void validarLimiteMensal(Usuario aluno, LocalDate dataReserva, int limite) {
+        LocalDate inicioMes = dataReserva.withDayOfMonth(1);
+        LocalDate fimMes = inicioMes.withDayOfMonth(inicioMes.lengthOfMonth());
+
+        long reservasNoMes = reservaColetivaRepository.countByAlunoAndStatusAndDataReservaBetween(
+                aluno, StatusReserva.CONFIRMADA, inicioMes, fimMes)
+                + reservaAulaRepository.countByAlunoAndStatusAndDataReservaBetween(
+                aluno, StatusReserva.CONFIRMADA, inicioMes, fimMes);
+
+        if (reservasNoMes >= limite) {
+            throw new BusinessException(
+                    "Limite de aulas por mês atingido para o plano (" + limite + "/mês).",
+                    "PLANO_LIMITE_MES");
         }
     }
 

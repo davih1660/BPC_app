@@ -25,6 +25,8 @@ public interface ReservaEmbarcacaoRepository extends JpaRepository<ReservaEmbarc
 
     List<ReservaEmbarcacao> findByData(LocalDate data);
 
+    List<ReservaEmbarcacao> findByAluno(Usuario aluno);
+
     List<ReservaEmbarcacao> findByAlunoAndStatus(Usuario aluno, StatusReserva status);
 
     List<ReservaEmbarcacao> findByStatus(StatusReserva status);

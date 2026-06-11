@@ -186,6 +186,10 @@ npm run build
 
 Verifique permissão de escrita em `Documents\BPC_app`. Pastas sincronizadas (OneDrive) podem bloquear builds — mova o projeto para um caminho local simples, ex.: `C:\dev\BPC_app`.
 
+## Deploy online (Vercel + Railway)
+
+Para publicar o protótipo e testar no celular fora da rede local, siga o roteiro em **[DEPLOY.md](DEPLOY.md)**.
+
 ## Fora de escopo (protótipo)
 
 JWT/OAuth, pagamentos, WebSocket, testes automatizados, microserviços.
