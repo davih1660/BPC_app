@@ -1,10 +1,15 @@
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN mvn -q -DskipTests package
 
-FROM eclipse-temurin:21-jre-alpine
+# Camada separada para cache de dependências (e retry em rede instável)
+COPY pom.xml .
+RUN mvn -B dependency:go-offline -DskipTests \
+    || mvn -B dependency:resolve dependency:resolve-plugins -DskipTests
+
+COPY src ./src
+RUN mvn -B -DskipTests package
+
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080

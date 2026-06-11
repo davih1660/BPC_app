@@ -220,6 +220,8 @@ docker compose down -v && docker compose up --build
 
 - Root Directory deve ser `backend` (não a raiz do monorepo)
 - Verifique logs: build Maven precisa de ~3 min
+- Erro `SSL peer shut down` ao baixar do Maven Central: o `Dockerfile` usa imagem Debian (não Alpine) e camada de dependências separada — faça push e redeploy
+- Se falhar de novo, clique **Redeploy** (pode ser instabilidade temporária de rede)
 
 ### Fotos somem após redeploy
 
