@@ -125,15 +125,21 @@ Aguarde o primeiro deploy (build Maven + seed pode levar 3–5 min).
 
 Clique em **Deploy**. Anote a URL gerada (ex.: `https://bpc-remo.vercel.app`).
 
-### 3.4 Atualizar CORS na Railway
+### 3.4 Atualizar CORS na Railway (obrigatório para login)
 
-Volte ao serviço backend na Railway e atualize:
+Sem este passo, o login retorna **403 Forbidden** na Vercel.
+
+Volte ao serviço **BPC_app** na Railway → **Variables** e defina:
 
 ```
-APP_CORS_ORIGINS=https://bpc-remo.vercel.app
+APP_CORS_ORIGINS=https://bpc-app-steel.vercel.app
 ```
 
-(use a URL real da Vercel). Salve — o Railway fará redeploy automaticamente.
+(use a **URL exata** da Vercel, com `https://`, sem barra no final).
+
+> O código também aceita `https://*.vercel.app` automaticamente após o próximo deploy do backend. Mesmo assim, mantenha `APP_CORS_ORIGINS` com a URL de produção.
+
+Salve — o Railway fará redeploy automaticamente. Teste o login em seguida.
 
 ---
 
@@ -223,9 +229,16 @@ docker compose down -v && docker compose up --build
 - Veja **Deploy Logs** — procure `Connection refused`, `SSL` ou `JDBC URL invalid`
 - O primeiro deploy com seed pode levar 2–3 min até o healthcheck passar
 
+### Login retorna 403 / "Erro na requisição"
+
+- Causa mais comum: `APP_CORS_ORIGINS` na Railway ainda é `http://localhost:3000`
+- Corrija para `https://SUA-URL.vercel.app` e aguarde redeploy
+- Confirme nos HTTP logs da Railway: `POST /api/auth/login` deve ser **200**, não **403**
+
 ### CORS (se testar API direto no browser)
 
 - `APP_CORS_ORIGINS` deve incluir a URL exata da Vercel (com `https://`, sem barra final)
+- O backend também aceita o padrão `https://*.vercel.app`
 
 ### Build Railway falha
 

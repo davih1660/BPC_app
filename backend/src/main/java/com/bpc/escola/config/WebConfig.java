@@ -6,7 +6,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class WebConfig {
@@ -20,10 +22,21 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins(Arrays.stream(corsOrigins.split(",")).map(String::trim).toArray(String[]::new))
+                        .allowedOriginPatterns(originPatterns())
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*");
             }
         };
+    }
+
+    private String[] originPatterns() {
+        List<String> patterns = new ArrayList<>();
+        patterns.add("http://localhost:3000");
+        patterns.add("https://*.vercel.app");
+        Arrays.stream(corsOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .forEach(patterns::add);
+        return patterns.toArray(String[]::new);
     }
 }

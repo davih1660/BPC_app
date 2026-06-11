@@ -68,6 +68,12 @@ async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 1
       signal: controller.signal,
     });
     if (!res.ok) {
+      if (res.status === 403) {
+        throw new ApiError(
+          "Acesso bloqueado pela API (CORS). Confira APP_CORS_ORIGINS na Railway com a URL da Vercel.",
+          "CORS_FORBIDDEN"
+        );
+      }
       const err = await res.json().catch(() => ({ message: res.statusText, code: "ERROR" }));
       throw new ApiError(err.message || "Erro na requisição", err.code || "ERROR");
     }

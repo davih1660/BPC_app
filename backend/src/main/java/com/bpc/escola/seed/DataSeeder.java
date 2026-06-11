@@ -83,13 +83,13 @@ public class DataSeeder implements CommandLineRunner {
 
     private void vincularPlanosAlunos(List<Usuario> alunos) {
         LocalDate hoje = RelogioSaoPaulo.hoje();
-        Plano plano1x = planoRepository.findByNome("1x Semana — Mensal").orElseThrow();
-        Plano plano2x = planoRepository.findByNome("2x Semana — Mensal").orElseThrow();
-        Plano plano3x = planoRepository.findByNome("3x Semana — Mensal").orElseThrow();
-        Plano planoLivre = planoRepository.findByNome("Livre — Mensal").orElseThrow();
-        Plano pacote10 = planoRepository.findByNome("Pacote 10 Remadas").orElseThrow();
-        Plano remadaAvulsa = planoRepository.findByNome("Remada Avulsa — Adulto").orElseThrow();
-        Plano wellhub = planoRepository.findByNome("Wellhub").orElseThrow();
+        Plano plano1x = planoRepository.findFirstByNome("1x Semana — Mensal").orElseThrow();
+        Plano plano2x = planoRepository.findFirstByNome("2x Semana — Mensal").orElseThrow();
+        Plano plano3x = planoRepository.findFirstByNome("3x Semana — Mensal").orElseThrow();
+        Plano planoLivre = planoRepository.findFirstByNome("Livre — Mensal").orElseThrow();
+        Plano pacote10 = planoRepository.findFirstByNome("Pacote 10 Remadas").orElseThrow();
+        Plano remadaAvulsa = planoRepository.findFirstByNome("Remada Avulsa — Adulto").orElseThrow();
+        Plano wellhub = planoRepository.findFirstByNome("Wellhub").orElseThrow();
 
         for (int i = 0; i < alunos.size(); i++) {
             if (i % 10 == 9) {

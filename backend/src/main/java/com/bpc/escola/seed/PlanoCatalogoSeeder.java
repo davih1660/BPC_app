@@ -47,7 +47,7 @@ public class PlanoCatalogoSeeder implements CommandLineRunner {
                 .collect(Collectors.toSet());
 
         for (PlanoCatalogo.Definicao def : PlanoCatalogo.todos()) {
-            Plano plano = planoRepository.findByNome(def.nome())
+            Plano plano = planoRepository.findFirstByNome(def.nome())
                     .orElseGet(() -> Plano.builder().nome(def.nome()).build());
             plano.setTipoPlano(def.tipoPlano());
             plano.setCategoriaPlano(def.categoriaPlano());
