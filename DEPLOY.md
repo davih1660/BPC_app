@@ -51,36 +51,46 @@ No serviço conectado ao repo:
 | Builder | Dockerfile |
 | Health Check Path | `/api/health` |
 
-### 2.3 Variáveis de ambiente
+### 2.3 Conectar Postgres ao backend
 
-Na aba **Variables** do serviço backend:
+1. No serviço **BPC_app**, aba **Variables**
+2. Clique em **+ New Variable** → **Add Reference** (ou "Connect Postgres")
+3. Selecione o serviço **Postgres** e adicione: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`
+
+> **Importante:** não use `DATABASE_PUBLIC_URL` (gera custo de egress). O app usa a rede privada via `PGHOST`.
+
+### 2.4 Variáveis de ambiente
 
 | Variável | Valor |
 |----------|-------|
 | `SPRING_PROFILES_ACTIVE` | `docker` |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://${{PGHOST}}:${{PGPORT}}/${{PGDATABASE}}` |
-| `SPRING_DATASOURCE_USERNAME` | `${{PGUSER}}` |
-| `SPRING_DATASOURCE_PASSWORD` | `${{PGPASSWORD}}` |
 | `APP_SEED_ENABLED` | `true` |
 | `APP_UPLOADS_DIR` | `/app/uploads` |
-| `APP_CORS_ORIGINS` | `https://SEU-APP.vercel.app` *(ajustar após Passo 3)* |
+| `APP_CORS_ORIGINS` | `http://localhost:3000` *(ajustar após Vercel)* |
 | `TZ` | `America/Sao_Paulo` |
+| `POSTGRES_SSLMODE` | `require` |
 
-> **Dica:** clique em **Add Reference** para vincular variáveis do PostgreSQL (`PGHOST`, `PGPORT`, etc.).
+**Remova** se existirem (conflitam com as variáveis `PG*`):
 
-### 2.4 Volume para uploads (recomendado)
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+
+O perfil `docker` monta a URL JDBC automaticamente a partir de `PGHOST`, `PGPORT`, etc.
+
+### 2.5 Volume para uploads (opcional)
 
 Sem volume, fotos de ocorrências somem a cada redeploy.
 
 1. Serviço backend → **Volumes** → **Add Volume**
 2. Mount path: `/app/uploads`
 
-### 2.5 Domínio público
+### 2.6 Domínio público
 
 1. Serviço backend → **Settings** → **Networking** → **Generate Domain**
 2. Anote a URL (ex.: `bpc-api-production.up.railway.app`)
 
-### 2.6 Validar
+### 2.7 Validar
 
 Abra no navegador:
 
@@ -207,10 +217,13 @@ docker compose down -v && docker compose up --build
 - Confirme `NEXT_PUBLIC_API_URL=/api`
 - Teste `https://SUA-API.up.railway.app/api/health` diretamente
 
-### Backend: erro de conexão com Postgres
+### Backend: erro de conexão com Postgres / healthcheck falha
 
-- Verifique referências `PGHOST`, `PGUSER`, etc. no serviço backend
-- URL JDBC deve começar com `jdbc:postgresql://`
+- Conecte o Postgres ao **BPC_app** via **Add Reference** (`PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`)
+- **Remova** `SPRING_DATASOURCE_URL`, `USERNAME` e `PASSWORD` se estiverem definidas
+- Não use `DATABASE_PUBLIC_URL` — use variáveis privadas `PG*`
+- Veja **Deploy Logs** (não Build Logs) — procure `Connection refused` ou `SSL`
+- O primeiro deploy com seed pode levar 2–3 min até o healthcheck passar
 
 ### CORS (se testar API direto no browser)
 
