@@ -13,8 +13,8 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Monta o DataSource para Docker/Railway a partir de DATABASE_URL ou variáveis PG*.
- * Evita URL inválida quando PGHOST está vazio (comum se as refs não foram ligadas no painel).
+ * Monta o DataSource para Docker/Railway.
+ * Prioriza DATABASE_URL (referência única do Postgres na Railway) sobre PG* avulsas.
  */
 @Configuration
 @Profile("docker")
@@ -31,7 +31,9 @@ public class RailwayDataSourceConfig {
 
         HikariConfig config = new HikariConfig();
 
-        if (pgHost != null) {
+        if (databaseUrl != null) {
+            applyDatabaseUrl(config, databaseUrl, sslMode);
+        } else if (pgHost != null) {
             config.setJdbcUrl(String.format(
                     "jdbc:postgresql://%s:%s/%s?sslmode=%s",
                     pgHost,
@@ -40,10 +42,7 @@ public class RailwayDataSourceConfig {
                     sslMode));
             config.setUsername(firstNonBlank(env.getProperty("PGUSER"), "postgres"));
             config.setPassword(env.getProperty("PGPASSWORD", ""));
-        } else if (databaseUrl != null) {
-            applyDatabaseUrl(config, databaseUrl, sslMode);
         } else {
-            // docker compose local (serviço postgres)
             config.setJdbcUrl("jdbc:postgresql://postgres:5432/escola_remo?sslmode=disable");
             config.setUsername("escola");
             config.setPassword("escola123");
@@ -53,8 +52,9 @@ public class RailwayDataSourceConfig {
     }
 
     private static void applyDatabaseUrl(HikariConfig config, String databaseUrl, String sslMode) {
-        // postgresql://user:pass@host:port/db
-        String normalized = databaseUrl.replaceFirst("^postgresql://", "");
+        String normalized = databaseUrl
+                .replaceFirst("^postgresql://", "")
+                .replaceFirst("^postgres://", "");
         int at = normalized.lastIndexOf('@');
         if (at < 0) {
             throw new IllegalStateException("DATABASE_URL inválida: " + databaseUrl);
@@ -67,6 +67,10 @@ public class RailwayDataSourceConfig {
         int slash = hostAndDb.indexOf('/');
         String hostPort = slash >= 0 ? hostAndDb.substring(0, slash) : hostAndDb;
         String database = slash >= 0 ? hostAndDb.substring(slash + 1) : "railway";
+        int query = database.indexOf('?');
+        if (query >= 0) {
+            database = database.substring(0, query);
+        }
 
         int colon = hostPort.lastIndexOf(':');
         String host = colon >= 0 ? hostPort.substring(0, colon) : hostPort;

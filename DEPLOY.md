@@ -59,11 +59,11 @@ No serviço conectado ao repo:
 2. Aba **Variables** → **+ New Variable** → **Add Reference**
 3. Selecione o serviço **Postgres** e adicione **uma** destas opções:
 
-**Opção A (mais simples):** referencie só `DATABASE_URL` (rede privada, não use `DATABASE_PUBLIC_URL`).
+**Use só `DATABASE_URL`** (rede privada — **não** use `DATABASE_PUBLIC_URL`).
 
-**Opção B:** referencie `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`.
+**Remova** variáveis `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` se existirem junto com `DATABASE_URL` — senhas desatualizadas causam `password authentication failed for user "postgres"`.
 
-> Sem isso a API sobe com `jdbc:postgresql://:/` e o healthcheck falha.
+> Sem `DATABASE_URL` a API sobe com `jdbc:postgresql://:/` e o healthcheck falha.
 
 ### 2.4 Variáveis de ambiente
 
@@ -233,11 +233,16 @@ docker compose down -v && docker compose up --build
 
 ### Backend: erro de conexão com Postgres / healthcheck falha
 
-- Log `jdbc:postgresql://:/` → Postgres **não conectado** ao BPC_app. Adicione referência a `DATABASE_URL` (privada) ou `PG`*
-- **Remova** `SPRING_DATASOURCE_`* se existirem
+- Log `jdbc:postgresql://:/` → adicione referência a `DATABASE_URL` (privada)
+- Log `password authentication failed for user "postgres"` → remova `PGHOST`/`PGPASSWORD` avulsos; use **só** `DATABASE_URL` do Postgres atual
+- **Remova** `SPRING_DATASOURCE_*` se existirem
 - Não use `DATABASE_PUBLIC_URL`
 - Veja **Deploy Logs** — procure `Connection refused`, `SSL` ou `JDBC URL invalid`
 - O primeiro deploy com seed pode levar 2–3 min até o healthcheck passar
+
+### Login retorna 500 ou timeout de 30s
+
+- `/api/health` ok mas login trava → senha do Postgres errada; reconecte `DATABASE_URL`
 
 ### Login retorna 403 / "Erro na requisição"
 
