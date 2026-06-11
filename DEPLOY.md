@@ -51,13 +51,17 @@ No serviço conectado ao repo:
 | Builder | Dockerfile |
 | Health Check Path | `/api/health` |
 
-### 2.3 Conectar Postgres ao backend
+### 2.3 Conectar Postgres ao backend (obrigatório)
 
-1. No serviço **BPC_app**, aba **Variables**
-2. Clique em **+ New Variable** → **Add Reference** (ou "Connect Postgres")
-3. Selecione o serviço **Postgres** e adicione: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`
+1. No canvas, clique no serviço **BPC_app**
+2. Aba **Variables** → **+ New Variable** → **Add Reference**
+3. Selecione o serviço **Postgres** e adicione **uma** destas opções:
 
-> **Importante:** não use `DATABASE_PUBLIC_URL` (gera custo de egress). O app usa a rede privada via `PGHOST`.
+**Opção A (mais simples):** referencie só `DATABASE_URL` (rede privada, não use `DATABASE_PUBLIC_URL`).
+
+**Opção B:** referencie `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`.
+
+> Sem isso a API sobe com `jdbc:postgresql://:/` e o healthcheck falha.
 
 ### 2.4 Variáveis de ambiente
 
@@ -70,13 +74,7 @@ No serviço conectado ao repo:
 | `TZ` | `America/Sao_Paulo` |
 | `POSTGRES_SSLMODE` | `require` |
 
-**Remova** se existirem (conflitam com as variáveis `PG*`):
-
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-
-O perfil `docker` monta a URL JDBC automaticamente a partir de `PGHOST`, `PGPORT`, etc.
+**Remova** se existirem: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 
 ### 2.5 Volume para uploads (opcional)
 
@@ -219,10 +217,10 @@ docker compose down -v && docker compose up --build
 
 ### Backend: erro de conexão com Postgres / healthcheck falha
 
-- Conecte o Postgres ao **BPC_app** via **Add Reference** (`PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`)
-- **Remova** `SPRING_DATASOURCE_URL`, `USERNAME` e `PASSWORD` se estiverem definidas
-- Não use `DATABASE_PUBLIC_URL` — use variáveis privadas `PG*`
-- Veja **Deploy Logs** (não Build Logs) — procure `Connection refused` ou `SSL`
+- Log `jdbc:postgresql://:/` → Postgres **não conectado** ao BPC_app. Adicione referência a `DATABASE_URL` (privada) ou `PG*`
+- **Remova** `SPRING_DATASOURCE_*` se existirem
+- Não use `DATABASE_PUBLIC_URL`
+- Veja **Deploy Logs** — procure `Connection refused`, `SSL` ou `JDBC URL invalid`
 - O primeiro deploy com seed pode levar 2–3 min até o healthcheck passar
 
 ### CORS (se testar API direto no browser)

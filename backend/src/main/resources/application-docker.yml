@@ -3,12 +3,6 @@ server:
   address: 0.0.0.0
 
 spring:
-  datasource:
-    # Railway injeta PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD ao conectar o Postgres.
-    # Não defina SPRING_DATASOURCE_URL manualmente — ela sobrescreve estes valores.
-    url: jdbc:postgresql://${PGHOST:postgres}:${PGPORT:5432}/${PGDATABASE:escola_remo}?sslmode=${POSTGRES_SSLMODE:disable}
-    username: ${PGUSER:escola}
-    password: ${PGPASSWORD:escola123}
   jpa:
     hibernate:
       ddl-auto: update
