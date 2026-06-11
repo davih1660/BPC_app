@@ -45,11 +45,13 @@ git push origin main
 
 No serviço conectado ao repo:
 
-| Configuração | Valor |
-|--------------|-------|
-| Root Directory | `backend` |
-| Builder | Dockerfile |
+
+| Configuração      | Valor         |
+| ----------------- | ------------- |
+| Root Directory    | `backend`     |
+| Builder           | Dockerfile    |
 | Health Check Path | `/api/health` |
+
 
 ### 2.3 Conectar Postgres ao backend (obrigatório)
 
@@ -65,14 +67,16 @@ No serviço conectado ao repo:
 
 ### 2.4 Variáveis de ambiente
 
-| Variável | Valor |
-|----------|-------|
-| `SPRING_PROFILES_ACTIVE` | `docker` |
-| `APP_SEED_ENABLED` | `true` |
-| `APP_UPLOADS_DIR` | `/app/uploads` |
-| `APP_CORS_ORIGINS` | `http://localhost:3000` *(ajustar após Vercel)* |
-| `TZ` | `America/Sao_Paulo` |
-| `POSTGRES_SSLMODE` | `require` |
+
+| Variável                 | Valor                                           |
+| ------------------------ | ----------------------------------------------- |
+| `SPRING_PROFILES_ACTIVE` | `docker`                                        |
+| `APP_SEED_ENABLED`       | `true`                                          |
+| `APP_UPLOADS_DIR`        | `/app/uploads`                                  |
+| `APP_CORS_ORIGINS`       | `http://localhost:3000` *(ajustar após Vercel)* |
+| `TZ`                     | `America/Sao_Paulo`                             |
+| `POSTGRES_SSLMODE`       | `require`                                       |
+
 
 **Remova** se existirem: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 
@@ -113,11 +117,13 @@ Aguarde o primeiro deploy (build Maven + seed pode levar 3–5 min).
 
 ### 3.2 Variáveis de ambiente
 
-| Variável | Valor |
-|----------|-------|
-| `API_BACKEND_URL` | `https://SUA-API.up.railway.app` |
-| `NEXT_PUBLIC_API_URL` | `/api` |
-| `NEXT_PUBLIC_SHOW_DEMO_HINT` | `true` |
+
+| Variável                     | Valor                            |
+| ---------------------------- | -------------------------------- |
+| `API_BACKEND_URL`            | `https://SUA-API.up.railway.app` |
+| `NEXT_PUBLIC_API_URL`        | `/api`                           |
+| `NEXT_PUBLIC_SHOW_DEMO_HINT` | `true`                           |
+
 
 > `API_BACKEND_URL` **não** deve terminar com `/api`.
 
@@ -147,11 +153,11 @@ Salve — o Railway fará redeploy automaticamente. Teste o login em seguida.
 
 ### Checklist
 
-- [ ] `https://seu-app.vercel.app/login` abre no celular (4G, fora do Wi-Fi)
-- [ ] Login com `marina@bpc.com` / `123456`
-- [ ] Dashboard e agenda carregam
-- [ ] Ocorrências: upload e visualização de foto funcionam
-- [ ] Seletor "Usuário mock" **não** aparece (só em dev local)
+- `https://seu-app.vercel.app/login` abre no celular (4G, fora do Wi-Fi)
+- Login com `marina@bpc.com` / `123456`
+- Dashboard e agenda carregam
+- Ocorrências: upload e visualização de foto funcionam
+- Seletor "Usuário mock" **não** aparece (só em dev local)
 
 ### Mensagem para professores
 
@@ -180,18 +186,20 @@ npm install
 npm run dev
 ```
 
-Acesse **http://localhost:3000**. Sem `API_BACKEND_URL`, o frontend usa `http://localhost:8080/api` diretamente.
+Acesse **[http://localhost:3000](http://localhost:3000)**. Sem `API_BACKEND_URL`, o frontend usa `http://localhost:8080/api` diretamente.
 
 ---
 
 ## Usuários seed
 
-| Perfil | E-mail | Senha |
-|--------|--------|-------|
-| Admin | admin@bpc.com | 123456 |
-| Professor | marina@bpc.com | 123456 |
-| Professor | ricardo@bpc.com | 123456 |
-| Aluno | aluno1@bpc.com … aluno15@bpc.com | 123456 |
+
+| Perfil    | E-mail                                                                              | Senha  |
+| --------- | ----------------------------------------------------------------------------------- | ------ |
+| Admin     | [admin@bpc.com](mailto:admin@bpc.com)                                               | 123456 |
+| Professor | [marina@bpc.com](mailto:marina@bpc.com)                                             | 123456 |
+| Professor | [ricardo@bpc.com](mailto:ricardo@bpc.com)                                           | 123456 |
+| Aluno     | [aluno1@bpc.com](mailto:aluno1@bpc.com) … [aluno15@bpc.com](mailto:aluno15@bpc.com) | 123456 |
+
 
 O seed só roda na primeira vez (banco vazio). Para resetar:
 
@@ -204,12 +212,14 @@ docker compose down -v && docker compose up --build
 
 ## Limitações do protótipo
 
-| Item | Comportamento |
-|------|---------------|
-| Uploads | Sem volume Railway, fotos somem no redeploy |
-| Auth | Token simples — não é segurança de produção |
-| Custo | Monitore créditos Railway e limites Vercel Hobby |
+
+| Item     | Comportamento                                       |
+| -------- | --------------------------------------------------- |
+| Uploads  | Sem volume Railway, fotos somem no redeploy         |
+| Auth     | Token simples — não é segurança de produção         |
+| Custo    | Monitore créditos Railway e limites Vercel Hobby    |
 | Redeploy | Mudar `API_BACKEND_URL` na Vercel exige novo deploy |
+
 
 ---
 
@@ -223,8 +233,8 @@ docker compose down -v && docker compose up --build
 
 ### Backend: erro de conexão com Postgres / healthcheck falha
 
-- Log `jdbc:postgresql://:/` → Postgres **não conectado** ao BPC_app. Adicione referência a `DATABASE_URL` (privada) ou `PG*`
-- **Remova** `SPRING_DATASOURCE_*` se existirem
+- Log `jdbc:postgresql://:/` → Postgres **não conectado** ao BPC_app. Adicione referência a `DATABASE_URL` (privada) ou `PG`*
+- **Remova** `SPRING_DATASOURCE_`* se existirem
 - Não use `DATABASE_PUBLIC_URL`
 - Veja **Deploy Logs** — procure `Connection refused`, `SSL` ou `JDBC URL invalid`
 - O primeiro deploy com seed pode levar 2–3 min até o healthcheck passar
@@ -233,7 +243,16 @@ docker compose down -v && docker compose up --build
 
 - Causa mais comum: `APP_CORS_ORIGINS` na Railway ainda é `http://localhost:3000`
 - Corrija para `https://SUA-URL.vercel.app` e aguarde redeploy
+- O perfil `docker` também aceita `https://*.vercel.app` e `*` (protótipo)
 - Confirme nos HTTP logs da Railway: `POST /api/auth/login` deve ser **200**, não **403**
+
+### Login retorna "E-mail ou senha inválidos" (401)
+
+- A API respondeu, mas o usuário não existe ou a senha está errada
+- Confirme `APP_SEED_ENABLED=true` na Railway
+- Use `marina@bpc.com` / `123456` (senha demo)
+- Após redeploy, o `DemoAcessoSeeder` recria usuários demo se faltarem
+- Se persistir: apague o Postgres e crie um novo (banco limpo)
 
 ### CORS (se testar API direto no browser)
 
@@ -250,3 +269,4 @@ docker compose down -v && docker compose up --build
 ### Fotos somem após redeploy
 
 - Adicione volume em `/app/uploads` no serviço Railway
+
